@@ -6,7 +6,6 @@ import { GelugRoutingModule } from './gelug-routing.module';
 import { MainComponent } from './main/main.component';
 
 import { ModalModule } from 'ngx-bootstrap/modal';
-import { CKEditorModule } from '@ckeditor/ckeditor5-angular';
 
 @NgModule({
   declarations: [MainComponent],
@@ -15,7 +14,6 @@ import { CKEditorModule } from '@ckeditor/ckeditor5-angular';
     GelugRoutingModule,
     ModalModule.forRoot(),
     FormsModule,
-    CKEditorModule
   ]
 })
 export class GelugModule { }

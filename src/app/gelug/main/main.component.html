@@ -1,7 +1,7 @@
 <div class="header">
-  <!--    <div>-->
-  <!--        <img src="./assets/logo.png" class="logo" />-->
-  <!--    </div>-->
+  <div>
+    <img src="./assets/logo-with-text.png" class="logo"/>
+  </div>
   <div class="mute-btn" (click)="stopSounds()" title="Stop all sounds">
     <i class="material-icons">volume_off</i> <br/>
   </div>
@@ -25,7 +25,7 @@
       <br/>
     </div>
     <input type="range" (input)="volumeControls(sound.filename, $event.target.value)" title="volume" min="0"
-           max="100" step="1" value="20" [attr.id]="sound.filename + '-volume'">
+                max="100" step="1" value="20" [attr.id]="sound.filename + '-volume'">
   </div>
   <br>
   <small class="text-1 footer">

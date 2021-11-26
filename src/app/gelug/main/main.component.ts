@@ -10,11 +10,11 @@ import { animate, style, transition, trigger } from '@angular/animations';
   styleUrls: ['./main.component.scss'],
   animations: [
     trigger('fadeInOut', [
-      transition(':enter', [   // :enter is alias to 'void => *'
+      transition(':enter', [
         style({ opacity: 0 }),
         animate(600, style({ opacity: 1 }))
       ]),
-      transition(':leave', [   // :leave is alias to '* => void'
+      transition(':leave', [
         animate(600, style({ opacity: 0 }))
       ])
     ])
@@ -68,7 +68,6 @@ export class MainComponent implements OnInit {
     });
   }
 
-  // Misc
   getJSON(url: string): Observable<any> {
     return this.http.get(url);
   }

@@ -8,9 +8,15 @@
 }
 
 .logo {
-  max-width: 60%;
-  height: auto;
+  padding-top: 10px;
+  max-width: 120px;
   animation: fadein 1.2s;
+}
+
+
+.title {
+  margin-left: 10px;
+  color: white;
 }
 
 .mute-btn {
@@ -73,9 +79,6 @@
 .footer {
   padding: 5px;
 }
-
-
-
 
 .controls {
   width: 60%;
