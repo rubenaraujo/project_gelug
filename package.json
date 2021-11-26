@@ -8,7 +8,7 @@
     "test": "ng test",
     "lint": "ng lint",
     "e2e": "ng e2e",
-    "subfolder-build": "ng build --base-href=\"/project-gelug/\" --deploy-url=/project-gelug/ --configuration=production"
+    "subfolder-build": "ng build --base-href=\"/project_gelug/\" --deploy-url=/project_gelug/ --configuration=production"
   },
   "private": true,
   "dependencies": {
