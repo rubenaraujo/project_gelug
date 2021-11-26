@@ -73,5 +73,20 @@
         "filename": "train",
         "screenname": "Train",
         "icon": "train.svg"
-    }
+    },
+  {
+    "filename": "airplane",
+    "screenname": "Airplane",
+    "icon": "airplane.svg"
+  },
+  {
+    "filename": "underwater",
+    "screenname": "Underwater",
+    "icon": "underwater.svg"
+  },
+  {
+    "filename": "spaceship",
+    "screenname": "Spaceship",
+    "icon": "spaceship.svg"
+  }
 ]
