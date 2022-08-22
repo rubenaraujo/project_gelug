@@ -1,6 +1,6 @@
 # Gelug
 
-An alternative to Noisli made in [Angular](https://github.com/angular/angular-cli).
+An alternative to N0isli made in [Angular](https://github.com/angular/angular-cli).
 
 ## Development
 
