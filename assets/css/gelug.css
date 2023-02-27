@@ -82,5 +82,6 @@ input[type="range"].slider-active {
   padding-bottom: 10px;
   width: 160px;
   animation: fadein 1.0s;
+  opacity: 1;
 }
 
