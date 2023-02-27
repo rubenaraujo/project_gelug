@@ -4,7 +4,6 @@ html, body {
 }
 
 body {
-  background-color: #232323;
   border-color: transparent;
   color: white;
   font-family: Raleway;
@@ -20,6 +19,8 @@ img {
 h1 {
   font-size: 50px;
   text-transform: uppercase;
+  margin-top: 0;
+  margin-bottom: 0;
 }
 
 button {
@@ -76,7 +77,8 @@ input[type="range"].slider-active {
 
 #btn-mute {
   text-align: center;
-  font-size: 2em;
-  width: 100px;
-  margin-bottom: 20px;
+  font-size: 1em;
+  margin-bottom: 1px;
+  align-self: flex-end;
 }
+
