@@ -1,20 +1,23 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
   <title>Gelug</title>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Raleway:400,800" type="text/css">
-  <link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
-  <link rel="shortcut icon" type="image/png" href="assets/images/favicon.png"/>
+  <link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet"
+    integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+  <link rel="shortcut icon" type="image/png" href="assets/images/favicon.png" />
   <link rel="stylesheet" href="assets/css/gelug.css">
 </head>
+
 <body>
 
   <div class="flex-container">
     <button id="btn-mute" class="flex-item fa fa-volume-up active" title="Mute/Unmute"></button>
-    <h1>Gelug</h1>
+    <img src="assets/logo-with-text.png" class="logo"/>
 
     <div id="sound-types" class="flex-container flex-item">
       <div data-key="rain" class="flex-container flex-item">
@@ -69,6 +72,34 @@
         <img src="assets/images/fan.png" alt="Fan" title="Fan" class="flex-item">
         <input type="range" min="0" max="100" class="flex-item">
       </div>
+      <div data-key="washingmachine" class="flex-container flex-item">
+        <img src="assets/images/washingmachine.svg" alt="Fan" title="Fan" class="flex-item">
+        <input type="range" min="0" max="100" class="flex-item">
+      </div>
+      <div data-key="garden" class="flex-container flex-item">
+        <img src="assets/images/garden.svg" alt="Fan" title="Fan" class="flex-item">
+        <input type="range" min="0" max="100" class="flex-item">
+      </div>
+      <div data-key="underwater" class="flex-container flex-item">
+        <img src="assets/images/underwater.svg" alt="Fan" title="Fan" class="flex-item">
+        <input type="range" min="0" max="100" class="flex-item">
+      </div>
+      <div data-key="spaceship" class="flex-container flex-item">
+        <img src="assets/images/spaceship.svg" alt="Fan" title="Fan" class="flex-item">
+        <input type="range" min="0" max="100" class="flex-item">
+      </div>
+      <div data-key="waterfall" class="flex-container flex-item">
+        <img src="assets/images/waterfall.svg" alt="Fan" title="Fan" class="flex-item">
+        <input type="range" min="0" max="100" class="flex-item">
+      </div>
+      <div data-key="car" class="flex-container flex-item">
+        <img src="assets/images/car.svg" alt="Fan" title="Fan" class="flex-item">
+        <input type="range" min="0" max="100" class="flex-item">
+      </div>
+      <div data-key="airplane" class="flex-container flex-item">
+        <img src="assets/images/airplane.svg" alt="Fan" title="Fan" class="flex-item">
+        <input type="range" min="0" max="100" class="flex-item">
+      </div>
       <div data-key="whitenoise" class="flex-container flex-item">
         <img src="assets/images/whitenoise.png" alt="White noise" title="White noise" class="flex-item">
         <input type="range" min="0" max="100" class="flex-item">
@@ -82,6 +113,13 @@
         <input type="range" min="0" max="100" class="flex-item">
       </div>
     </div>
+    <br>
+    <small class="text-1 footer">
+      <br>
+      developed by Ruben Araujo
+      <br>
+      <br>
+    </small>
   </div>
 
   <audio data-key="rain" src="assets/sounds/rain.ogg" loop></audio>
@@ -97,10 +135,18 @@
   <audio data-key="coffee" src="assets/sounds/coffee.ogg" loop></audio>
   <audio data-key="train" src="assets/sounds/train.ogg" loop></audio>
   <audio data-key="fan" src="assets/sounds/fan.ogg" loop></audio>
+  <audio data-key="car" src="assets/sounds/car.ogg" loop></audio>
+  <audio data-key="airplane" src="assets/sounds/airplane.ogg" loop></audio>
+  <audio data-key="spaceship" src="assets/sounds/spaceship.ogg" loop></audio>
+  <audio data-key="garden" src="assets/sounds/garden.ogg" loop></audio>
+  <audio data-key="underwater" src="assets/sounds/underwater.ogg" loop></audio>
+  <audio data-key="washingmachine" src="assets/sounds/washingmachine.ogg" loop></audio>
+  <audio data-key="waterfall" src="assets/sounds/waterfall.ogg" loop></audio>
   <audio data-key="whitenoise" src="assets/sounds/whitenoise.ogg" loop></audio>
   <audio data-key="pinknoise" src="assets/sounds/pinknoise.ogg" loop></audio>
   <audio data-key="brownnoise" src="assets/sounds/brownnoise.ogg" loop></audio>
 
   <script src="assets/js/gelug.js" charset="utf-8"></script>
 </body>
+
 </html>

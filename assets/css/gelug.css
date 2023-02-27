@@ -17,13 +17,6 @@ img {
   opacity: 0.5;
 }
 
-h1 {
-  font-size: 50px;
-  text-transform: uppercase;
-  margin-top: 0;
-  margin-bottom: 0;
-}
-
 button {
   background: rgba(255, 255, 255, 0.25);
   border-style: none;
@@ -70,16 +63,24 @@ input[type="range"].slider-active {
   min-height: 100vh;
 }
 
-#welcome-text {
-  font-size: 20px;
-  text-align: center;
-  padding-bottom: 2em;
-}
-
 #btn-mute {
   text-align: center;
   font-size: 1em;
   margin-bottom: 1px;
   align-self: flex-end;
+}
+
+.footer {
+  padding: 5px;
+  font-family: Raleway;
+  font-size: 10px;
+  text-align: center;
+}
+
+.logo {
+  padding-top: 10px;
+  padding-bottom: 10px;
+  width: 160px;
+  animation: fadein 1.0s;
 }
 
