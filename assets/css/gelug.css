@@ -63,6 +63,18 @@ input[type="range"].slider-active {
   min-height: 100vh;
 }
 
+@media (max-width: 768px) {
+  #sound-types .flex-container {
+    width: 45%;
+  }
+}
+
+@media (min-width: 769px) {
+  #sound-types .flex-container {
+    width: 20%;
+  }
+}
+
 #btn-mute {
   text-align: center;
   font-size: 1em;
