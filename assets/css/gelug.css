@@ -9,6 +9,7 @@ body {
   color: white;
   font-family: Raleway;
   transition: background 5s;
+  margin: 0px;
 }
 
 img {
@@ -65,7 +66,11 @@ input[type="range"].slider-active {
 
 @media (max-width: 768px) {
   #sound-types .flex-container {
-    width: 45%;
+    width: 41%;
+  }
+
+  #sound-types {
+    margin-top: 0px;
   }
 }
 
