@@ -1,10 +1,20 @@
 const FADE = 0.05
+const POMODORO = { focus: 25 * 60, break: 5 * 60 } // seconds
+
+// Safari has no Ogg Vorbis support, so it gets the AAC copies of the sounds
+const SOUND_EXTENSION = document.createElement("audio").canPlayType('audio/ogg; codecs="vorbis"') ? "ogg" : "m4a"
+const soundUrl = key => `assets/sounds/${key}.${SOUND_EXTENSION}`
+
+// On iOS, Web Audio is silenced by the ringer switch unless the page declares it is playing media
+if (navigator.audioSession) navigator.audioSession.type = "playback"
 
 let context
 let master
 let muted = false
+let paused = false
+const rawData = new Map() // key -> Promise<ArrayBuffer>
 const buffers = new Map() // key -> Promise<AudioBuffer>
-const voices = new Map() // key -> { source, gain } for sounds that are on
+const voices = new Map() // key -> voice for sounds that are on (null while loading)
 
 function getContext() {
   if (!context) {
@@ -13,19 +23,29 @@ function getContext() {
     master.gain.value = muted ? 0 : 1
     master.connect(context.destination)
   }
-  if (context.state === "suspended") context.resume()
+  if (context.state === "suspended" && !paused) context.resume()
   return context
+}
+
+function fetchData(key) {
+  if (!rawData.has(key)) {
+    const promise = fetch(soundUrl(key)).then(response => {
+      if (!response.ok) throw new Error(response.statusText)
+      return response.arrayBuffer()
+    })
+    promise.catch(() => rawData.delete(key))
+    rawData.set(key, promise)
+  }
+  return rawData.get(key)
 }
 
 function loadBuffer(key) {
   if (!buffers.has(key)) {
-    const promise = fetch(`assets/sounds/${key}.ogg`)
-      .then(response => {
-        if (!response.ok) throw new Error(response.statusText)
-        return response.arrayBuffer()
-      })
-      .then(data => getContext().decodeAudioData(data))
-    promise.catch(() => buffers.delete(key))
+    const promise = fetchData(key).then(data => getContext().decodeAudioData(data))
+    promise.catch(() => {
+      buffers.delete(key)
+      rawData.delete(key)
+    })
     buffers.set(key, promise)
   }
   return buffers.get(key)
@@ -39,9 +59,19 @@ function setVoiceVolume(voice, slider) {
     voice.gain.gain.setTargetAtTime(volume, context.currentTime, FADE)
 }
 
+// Slowly drifts volume and pitch a little so the loop feels less repetitive
+function wobble(voice) {
+  voice.timer = setTimeout(() => {
+    const now = context.currentTime
+    voice.variation.gain.setTargetAtTime(0.85 + Math.random() * 0.15, now, 2)
+    voice.source.detune.setTargetAtTime((Math.random() - 0.5) * 30, now, 3)
+    wobble(voice)
+  }, 4000 + Math.random() * 6000)
+}
+
 // Plain <audio> playback, used when the sound can't be fetched/decoded (e.g. opening the page from file://)
 function startFallbackVoice(key, slider) {
-  const audio = new Audio(`assets/sounds/${key}.ogg`)
+  const audio = new Audio(soundUrl(key))
   audio.loop = true
   audio.muted = muted
   const voice = { audio }
@@ -51,10 +81,12 @@ function startFallbackVoice(key, slider) {
 }
 
 async function startSound(key, image, slider) {
-  image.classList.add("active")
+  image.classList.add("active", "loading")
+  image.setAttribute("aria-pressed", "true")
   slider.classList.add("slider-active")
-  if ("mediaSession" in navigator) navigator.mediaSession.playbackState = "playing"
   voices.set(key, null) // reserve the slot while the sound loads
+  if (paused) setPlaying(true)
+  syncState()
 
   try {
     getContext()
@@ -64,7 +96,9 @@ async function startSound(key, image, slider) {
 
     const gain = context.createGain()
     gain.gain.value = 0
-    gain.connect(master)
+    const variation = context.createGain()
+    gain.connect(variation)
+    variation.connect(master)
 
     const source = context.createBufferSource()
     source.buffer = buffer
@@ -72,77 +106,108 @@ async function startSound(key, image, slider) {
     source.connect(gain)
     source.start()
 
-    const voice = { source, gain }
+    const voice = { source, gain, variation, timer: null }
     voices.set(key, voice)
     setVoiceVolume(voice, slider)
+    wobble(voice)
   } catch (error) {
     console.error(`Web Audio failed for "${key}", falling back to <audio>`, error)
     if (voices.get(key) === null)
       startFallbackVoice(key, slider)
+  } finally {
+    image.classList.remove("loading")
   }
 }
 
 function stopSound(key, image, slider) {
   const voice = voices.get(key)
   voices.delete(key)
-  image.classList.remove("active")
+  image.classList.remove("active", "loading")
+  image.setAttribute("aria-pressed", "false")
   slider.classList.remove("slider-active")
 
   if (voice?.audio) {
     voice.audio.pause()
   } else if (voice) {
+    clearTimeout(voice.timer)
     voice.gain.gain.setTargetAtTime(0, context.currentTime, FADE)
     voice.source.stop(context.currentTime + FADE * 6)
   }
+  syncState()
 }
 
-function setButtonEvents() {
-  const buttons = document.querySelectorAll("#buttons > button")
-  const images = document.querySelectorAll("img")
-  const sliders = document.querySelectorAll(`input[type="range"]`)
+function toggleSound(image) {
+  const key = image.parentElement.dataset.key
+  const slider = image.parentElement.querySelector(`input[type="range"]`)
+
+  if (voices.has(key))
+    stopSound(key, image, slider)
+  else
+    startSound(key, image, slider)
+}
+
+function setMuted(value) {
+  muted = value
   const buttonMute = document.querySelector("#btn-mute")
+  buttonMute.classList.toggle("fa-volume-up", !muted)
+  buttonMute.classList.toggle("fa-volume-off", muted)
+  buttonMute.classList.toggle("active", !muted)
+  buttonMute.setAttribute("aria-label", muted ? "Unmute" : "Mute")
 
-  buttons.forEach(button => {
-    button.addEventListener("click", event => {
-      button.classList.toggle("active")
-    })
+  if (master)
+    master.gain.setTargetAtTime(muted ? 0 : 1, context.currentTime, FADE)
+  voices.forEach(voice => {
+    if (voice?.audio) voice.audio.muted = muted
   })
+}
 
-  images.forEach(image => {
-    image.addEventListener("click", event => {
-      const key = image.parentElement.dataset.key
-      if (!key) return
-
-      const slider = document.querySelector(`div[data-key="${key}"] > input[type="range"]`)
-      slider.setAttribute("aria-label", `${image.alt} volume`)
-
-      if (voices.has(key))
-        stopSound(key, image, slider)
-      else
-        startSound(key, image, slider)
-    })
+function setPlaying(playing) {
+  paused = !playing
+  document.body.classList.toggle("paused", paused)
+  if (context) playing ? context.resume() : context.suspend()
+  voices.forEach(voice => {
+    if (voice?.audio) playing ? voice.audio.play() : voice.audio.pause()
   })
+  syncState()
+}
 
-  sliders.forEach(slider => {
-    slider.addEventListener("input", event => {
-      const key = slider.parentElement.dataset.key
-      slider.style.setProperty("--fill", `${(slider.value / slider.max) * 100}%`)
-      const voice = voices.get(key)
-      if (voice)
-        setVoiceVolume(voice, slider)
-    })
-  })
+// Keeps the tab title, wake lock and media session in sync with what is playing
+function syncState() {
+  renderTitle()
+  updateWakeLock()
+  if ("mediaSession" in navigator)
+    navigator.mediaSession.playbackState = voices.size && !paused ? "playing" : "paused"
+}
 
-  buttonMute.addEventListener("click", event => {
-    buttonMute.classList.toggle("fa-volume-up")
-    buttonMute.classList.toggle("fa-volume-off")
+// Off by default: keeping the screen awake all night drains the battery
+let keepScreenOn = false
+let wakeLock = null
+async function updateWakeLock() {
+  const wanted = keepScreenOn && voices.size > 0 && !paused && document.visibilityState === "visible"
 
-    muted = !muted
-    if (master)
-      master.gain.setTargetAtTime(muted ? 0 : 1, context.currentTime, FADE)
-    voices.forEach(voice => {
-      if (voice?.audio) voice.audio.muted = muted
-    })
+  if (wanted && !wakeLock && "wakeLock" in navigator) {
+    try {
+      wakeLock = await navigator.wakeLock.request("screen")
+      wakeLock.addEventListener("release", () => { wakeLock = null })
+    } catch (error) {
+      // Wake lock can be refused (e.g. low battery); playback is unaffected
+    }
+  } else if (!wanted && wakeLock) {
+    wakeLock.release()
+    wakeLock = null
+  }
+}
+
+function setWakeLockButton() {
+  const button = document.querySelector("#btn-wakelock")
+  if (!("wakeLock" in navigator)) return
+
+  button.hidden = false
+  button.addEventListener("click", () => {
+    keepScreenOn = !keepScreenOn
+    button.classList.toggle("active", keepScreenOn)
+    button.setAttribute("aria-pressed", String(keepScreenOn))
+    updateWakeLock()
   })
 }
 
@@ -161,13 +226,182 @@ function setMediaSession() {
   navigator.mediaSession.setActionHandler("pause", () => setPlaying(false))
 }
 
-function setPlaying(playing) {
-  if (context) playing ? context.resume() : context.suspend()
-  voices.forEach(voice => {
-    if (voice?.audio) playing ? voice.audio.play() : voice.audio.pause()
+const pomodoro = { phase: null, endsAt: 0, interval: null }
+
+function formatTime(seconds) {
+  const minutes = String(Math.floor(seconds / 60)).padStart(2, "0")
+  return `${minutes}:${String(seconds % 60).padStart(2, "0")}`
+}
+
+function pomodoroLabel() {
+  const remaining = Math.max(0, Math.ceil((pomodoro.endsAt - Date.now()) / 1000))
+  return `${pomodoro.phase === "focus" ? "Focus" : "Break"} ${formatTime(remaining)}`
+}
+
+function renderTitle() {
+  const sounds = voices.size ? ` · ${voices.size}` : ""
+  document.title = pomodoro.phase ? `${pomodoroLabel()} · Gelug${sounds}` : `Gelug${sounds}`
+}
+
+function playChime() {
+  const ctx = getContext()
+  ;[660, 880].forEach((frequency, index) => {
+    const start = ctx.currentTime + index * 0.35
+    const oscillator = ctx.createOscillator()
+    const gain = ctx.createGain()
+    oscillator.frequency.value = frequency
+    gain.gain.setValueAtTime(0, start)
+    gain.gain.linearRampToValueAtTime(0.15, start + 0.05)
+    gain.gain.exponentialRampToValueAtTime(0.001, start + 1.2)
+    oscillator.connect(gain)
+    gain.connect(master)
+    oscillator.start(start)
+    oscillator.stop(start + 1.3)
   })
-  if ("mediaSession" in navigator)
-    navigator.mediaSession.playbackState = playing ? "playing" : "paused"
+}
+
+function startPomodoroPhase(phase) {
+  pomodoro.phase = phase
+  pomodoro.endsAt = Date.now() + POMODORO[phase] * 1000
+}
+
+function tickPomodoro() {
+  if (Date.now() >= pomodoro.endsAt) {
+    startPomodoroPhase(pomodoro.phase === "focus" ? "break" : "focus")
+    playChime()
+  }
+  document.querySelector("#btn-pomodoro").textContent = pomodoroLabel()
+  renderTitle()
+}
+
+function togglePomodoro() {
+  const button = document.querySelector("#btn-pomodoro")
+
+  if (pomodoro.phase) {
+    clearInterval(pomodoro.interval)
+    pomodoro.phase = null
+    button.textContent = "Pomodoro"
+    button.classList.remove("active")
+    renderTitle()
+    return
+  }
+
+  getContext() // created on a user gesture so the end-of-phase chime is allowed to play
+  startPomodoroPhase("focus")
+  button.classList.add("active")
+  tickPomodoro()
+  pomodoro.interval = setInterval(tickPomodoro, 1000)
+}
+
+function setInstallButton() {
+  const button = document.querySelector("#btn-install")
+  let installPrompt
+
+  window.addEventListener("beforeinstallprompt", event => {
+    event.preventDefault()
+    installPrompt = event
+    button.hidden = false
+  })
+  window.addEventListener("appinstalled", () => {
+    button.hidden = true
+  })
+  button.addEventListener("click", async () => {
+    if (!installPrompt) return
+    installPrompt.prompt()
+    await installPrompt.userChoice
+    installPrompt = null
+    button.hidden = true
+  })
+}
+
+// Moves focus to the sound icon nearest to the current one in the pressed direction
+function moveFocus(images, current, key) {
+  if (!current) return images[0].focus()
+
+  const index = images.indexOf(current)
+  if (key === "ArrowRight") return images[Math.min(index + 1, images.length - 1)].focus()
+  if (key === "ArrowLeft") return images[Math.max(index - 1, 0)].focus()
+
+  const rect = current.getBoundingClientRect()
+  const direction = key === "ArrowDown" ? 1 : -1
+  const candidates = images
+    .map(image => ({ image, rect: image.getBoundingClientRect() }))
+    .filter(({ rect: other }) => (other.top - rect.top) * direction > rect.height / 2)
+    .sort((a, b) =>
+      Math.abs(a.rect.top - rect.top) - Math.abs(b.rect.top - rect.top) ||
+      Math.abs(a.rect.left - rect.left) - Math.abs(b.rect.left - rect.left))
+  if (candidates.length) candidates[0].image.focus()
+}
+
+function setKeyboardEvents(images) {
+  document.addEventListener("keydown", event => {
+    if (event.ctrlKey || event.metaKey || event.altKey) return
+
+    const target = event.target
+    if (target.matches(`input[type="range"]`)) return
+    const onSound = images.includes(target)
+
+    if ((event.key === " " || event.key === "Enter") && onSound) {
+      event.preventDefault()
+      toggleSound(target)
+    } else if (event.key === " " && !target.matches("button")) {
+      event.preventDefault()
+      if (voices.size) setPlaying(paused)
+    } else if (event.key.toLowerCase() === "m" && !target.matches("button")) {
+      setMuted(!muted)
+    } else if (event.key.startsWith("Arrow") && (onSound || target === document.body)) {
+      event.preventDefault()
+      moveFocus(images, onSound ? target : null, event.key)
+    }
+  })
+}
+
+function setButtonEvents() {
+  const buttons = document.querySelectorAll("#buttons > button")
+  const images = [...document.querySelectorAll("#sound-types img")]
+  const sliders = document.querySelectorAll(`input[type="range"]`)
+
+  buttons.forEach(button => {
+    button.addEventListener("click", event => {
+      button.classList.toggle("active")
+    })
+  })
+
+  images.forEach((image, index) => {
+    const key = image.parentElement.dataset.key
+    const slider = image.parentElement.querySelector(`input[type="range"]`)
+
+    image.setAttribute("role", "button")
+    image.setAttribute("aria-pressed", "false")
+    image.setAttribute("aria-label", image.alt)
+    image.tabIndex = index === 0 ? 0 : -1
+    slider.setAttribute("aria-label", `${image.alt} volume`)
+
+    // Roving tabindex: a single tab stop for the grid, arrows move inside it
+    image.addEventListener("focus", () => {
+      images.forEach(other => { other.tabIndex = other === image ? 0 : -1 })
+    })
+    image.addEventListener("click", () => toggleSound(image))
+    // Start downloading on hover so the sound is ready by the time it is clicked
+    image.addEventListener("pointerenter", event => {
+      if (event.pointerType === "mouse") fetchData(key).catch(() => {})
+    })
+  })
+
+  sliders.forEach(slider => {
+    slider.addEventListener("input", event => {
+      const key = slider.parentElement.dataset.key
+      slider.style.setProperty("--fill", `${(slider.value / slider.max) * 100}%`)
+
+      const voice = voices.get(key)
+      if (voice)
+        setVoiceVolume(voice, slider)
+    })
+  })
+
+  document.querySelector("#btn-mute").addEventListener("click", () => setMuted(!muted))
+  document.querySelector("#btn-pomodoro").addEventListener("click", togglePomodoro)
+  setKeyboardEvents(images)
 }
 
 function registerServiceWorker() {
@@ -177,8 +411,11 @@ function registerServiceWorker() {
 
 function run() {
   setButtonEvents()
+  setInstallButton()
+  setWakeLockButton()
   setMediaSession()
   registerServiceWorker()
+  document.addEventListener("visibilitychange", updateWakeLock)
 }
 
 run()

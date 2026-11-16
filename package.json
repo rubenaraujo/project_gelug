@@ -1,0 +1,12 @@
+{
+  "name": "gelug",
+  "private": true,
+  "description": "Ambient sounds to focus, relax and sleep",
+  "scripts": {
+    "start": "python3 -m http.server 4173",
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.65.1"
+  }
+}
