@@ -172,11 +172,15 @@ function setPlaying(playing) {
 }
 
 const BLUE = [40, 90, 160], PURPLE = [90, 70, 170], AMBER = [190, 90, 30], GREEN = [40, 130, 80]
+const SLATE = [85, 105, 125], STEEL = [110, 115, 125], INDIGO = [50, 55, 150]
 const AMBIENT_COLORS = {
   rain: BLUE, waterstream: BLUE, seaside: BLUE, water: BLUE, underwater: BLUE, waterfall: BLUE,
   thunderstorm: PURPLE,
   fire: AMBER, coffee: AMBER,
   forest: GREEN, leaves: GREEN, garden: GREEN, summernight: GREEN,
+  wind: SLATE, fan: SLATE, washingmachine: SLATE, whitenoise: SLATE, pinknoise: SLATE, brownnoise: SLATE,
+  train: STEEL, car: STEEL, airplane: STEEL,
+  spaceship: INDIGO,
 }
 
 // Tints the background with the colors of the active sounds, weighted by their volume
