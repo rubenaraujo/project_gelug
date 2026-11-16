@@ -273,10 +273,25 @@ input[type="range"]::-moz-range-thumb {
 }
 
 .logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
   padding-top: 10px;
   padding-bottom: 10px;
-  width: 160px;
   animation: fadein 1.0s;
   opacity: 1;
+}
+
+.logo img {
+  height: 48px;
+  width: auto;
+}
+
+.logo span {
+  font-size: 34px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #fff;
 }
 
