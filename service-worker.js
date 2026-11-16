@@ -1,5 +1,5 @@
 // Bump the version when the app shell changes so old caches are discarded
-const CACHE = "gelug-v6"
+const CACHE = "gelug-v7"
 
 const SHELL = [
   "./",
