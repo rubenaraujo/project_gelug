@@ -6,6 +6,14 @@
   src: url(../fonts/raleway-latin.woff2) format("woff2");
 }
 
+@font-face {
+  font-family: "Barlow Condensed";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(../fonts/barlow-condensed-latin.woff2) format("woff2");
+}
+
 /* Only the Font Awesome 4.7 glyphs used by the mute button */
 @font-face {
   font-family: FontAwesome;
@@ -284,14 +292,19 @@ input[type="range"]::-moz-range-thumb {
 }
 
 .logo img {
-  height: 48px;
+  height: 76px;
   width: auto;
+  padding: 0;
+  opacity: 1;
 }
 
 .logo span {
-  font-size: 34px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
+  font-family: "Barlow Condensed", Raleway, sans-serif;
+  font-size: 44px;
+  font-weight: 400;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  line-height: 1;
   color: #fff;
 }
 

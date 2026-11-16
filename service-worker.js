@@ -1,5 +1,5 @@
 // Bump the version when the app shell changes so old caches are discarded
-const CACHE = "gelug-v5"
+const CACHE = "gelug-v6"
 
 const SHELL = [
   "./",
@@ -7,6 +7,7 @@ const SHELL = [
   "assets/css/gelug.css",
   "assets/js/gelug.js",
   "assets/fonts/raleway-latin.woff2",
+  "assets/fonts/barlow-condensed-latin.woff2",
   "assets/fonts/fontawesome-webfont.woff2",
   "assets/mark.png",
   "icon-192.png",
