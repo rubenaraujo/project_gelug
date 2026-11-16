@@ -17,10 +17,13 @@ function setButtonEvents() {
       image.classList.toggle("active")
       const slider = document.querySelector(`div[data-key="${key}"] > input[type="range"]`)
       slider.classList.toggle("slider-active")
+      slider.setAttribute("aria-label", `${image.alt} volume`)
 
       const audio = document.querySelector(`audio[data-key="${key}"]`)
-      if (audio)
+      if (audio) {
+        audio.volume = slider.value / slider.max
         audio.paused ? audio.play() : audio.pause()
+      }
     })
   })
 
@@ -30,7 +33,7 @@ function setButtonEvents() {
 
       const audio = document.querySelector(`audio[data-key="${key}"]`)
       if (audio)
-        audio.volume = slider.value / (slider.max - slider.min)
+        audio.volume = slider.value / slider.max
     })
   })
 
