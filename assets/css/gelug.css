@@ -30,10 +30,21 @@
   content: "\f028";
 }
 
+@property --glow-r { syntax: "<number>"; inherits: true; initial-value: 40; }
+@property --glow-g { syntax: "<number>"; inherits: true; initial-value: 90; }
+@property --glow-b { syntax: "<number>"; inherits: true; initial-value: 160; }
+@property --glow-a { syntax: "<number>"; inherits: true; initial-value: 0; }
+
 html, body {
   height: 100%;
   width: 100%;
-  background: black;
+}
+
+html {
+  background:
+    radial-gradient(ellipse 80% 70% at 50% 35%, rgba(var(--glow-r), var(--glow-g), var(--glow-b), var(--glow-a)), transparent 75%) fixed,
+    black;
+  transition: --glow-r 3s, --glow-g 3s, --glow-b 3s, --glow-a 3s;
 }
 
 body {

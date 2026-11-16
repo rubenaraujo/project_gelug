@@ -171,9 +171,38 @@ function setPlaying(playing) {
   syncState()
 }
 
+const BLUE = [40, 90, 160], PURPLE = [90, 70, 170], AMBER = [190, 90, 30], GREEN = [40, 130, 80]
+const AMBIENT_COLORS = {
+  rain: BLUE, waterstream: BLUE, seaside: BLUE, water: BLUE, underwater: BLUE, waterfall: BLUE,
+  thunderstorm: PURPLE,
+  fire: AMBER, coffee: AMBER,
+  forest: GREEN, leaves: GREEN, garden: GREEN, summernight: GREEN,
+}
+
+// Tints the background with the colors of the active sounds, weighted by their volume
+function updateAmbient() {
+  const total = [0, 0, 0]
+  let weight = 0
+  let strongest = 0
+  document.querySelectorAll("#sound-types > div").forEach(tile => {
+    const color = AMBIENT_COLORS[tile.dataset.key]
+    const slider = tile.querySelector(`input[type="range"]`)
+    if (!color || !voices.has(tile.dataset.key)) return
+    const volume = slider.value / slider.max
+    color.forEach((channel, i) => { total[i] += channel * volume })
+    weight += volume
+    strongest = Math.max(strongest, volume)
+  })
+
+  const style = document.documentElement.style
+  if (weight > 0) total.forEach((sum, i) => style.setProperty(`--glow-${"rgb"[i]}`, Math.round(sum / weight)))
+  style.setProperty("--glow-a", (0.15 + 0.3 * strongest) * (weight > 0 ? 1 : 0))
+}
+
 // Keeps the tab title, wake lock and media session in sync with what is playing
 function syncState() {
   renderTitle()
+  updateAmbient()
   updateWakeLock()
   if ("mediaSession" in navigator)
     navigator.mediaSession.playbackState = voices.size && !paused ? "playing" : "paused"
@@ -396,6 +425,7 @@ function setButtonEvents() {
       const voice = voices.get(key)
       if (voice)
         setVoiceVolume(voice, slider)
+      updateAmbient()
     })
   })
 

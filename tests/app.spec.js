@@ -20,6 +20,15 @@ test("shows every sound", async ({ page }) => {
   await expect(page.locator("#sound-types img")).toHaveCount(23)
 })
 
+test("background glow follows the active sounds", async ({ page }) => {
+  const alpha = () => page.evaluate(() => document.documentElement.style.getPropertyValue("--glow-a"))
+  await sound(page, "Fire").click()
+  expect(Number(await alpha())).toBeGreaterThan(0)
+  expect(await page.evaluate(() => document.documentElement.style.getPropertyValue("--glow-r"))).toBe("190")
+  await sound(page, "Fire").click()
+  expect(Number(await alpha())).toBe(0)
+})
+
 test("clicking a sound plays it in a loop and clicking again stops it", async ({ page }) => {
   await sound(page, "Rain").click()
   await loaded(page, 1)
