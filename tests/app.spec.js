@@ -94,11 +94,28 @@ test("tab title shows how many sounds are playing", async ({ page }) => {
   await expect(page).toHaveTitle("Gelug")
 })
 
-test("pomodoro starts and stops", async ({ page }) => {
-  await page.click("#btn-pomodoro")
-  await expect(page.locator("#btn-pomodoro")).toHaveText(/Focus 2[45]:\d\d/)
-  await page.click("#btn-pomodoro")
-  await expect(page.locator("#btn-pomodoro")).toHaveText("Pomodoro")
+test("sleep timer panel starts and cancels a timer limited to 15 minutes", async ({ page }) => {
+  await page.click("#btn-timer")
+  await expect(page.locator("#timer-minutes")).toHaveAttribute("max", "15")
+  await page.click(`.timer-presets button[data-minutes="5"]`)
+  await expect(page.locator("#timer-value")).toHaveText("5")
+  await page.click("#btn-timer-start")
+  await expect(page.locator("#btn-timer-label")).toHaveText(/0[45]:\d\d/)
+  await page.click("#btn-timer")
+  await expect(page.locator("#btn-timer-start")).toHaveText("Cancel")
+  await page.click("#btn-timer-start")
+  await expect(page.locator("#btn-timer-label")).toHaveText("Sleep timer")
+})
+
+test("language button switches between English and Portuguese and is remembered", async ({ page }) => {
+  await page.click("#btn-lang")
+  await expect(page.locator("html")).toHaveAttribute("lang", "pt")
+  await expect(page.getByRole("button", { name: "Chuva" })).toBeVisible()
+  await expect(page.locator("#btn-timer-label")).toHaveText("Temporizador")
+  await page.reload()
+  await expect(page.locator("#btn-timer-label")).toHaveText("Temporizador")
+  await page.click("#btn-lang")
+  await expect(page.getByRole("button", { name: "Rain", exact: true })).toBeVisible()
 })
 
 test("keep screen on button requests a wake lock only while sounds play", async ({ page }) => {

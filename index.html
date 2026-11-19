@@ -23,9 +23,26 @@
 
   <div class="flex-container">
     <div id="toolbar">
-      <button id="btn-install" hidden title="Install app">Install</button>
-      <button id="btn-wakelock" hidden aria-pressed="false" title="Keep the screen on while sounds are playing">Keep screen on</button>
-      <button id="btn-pomodoro" title="Pomodoro: 25 min focus, 5 min break">Pomodoro</button>
+      <button id="btn-install" hidden data-i18n="install" data-i18n-title="installTitle">Install</button>
+      <button id="btn-wakelock" hidden aria-pressed="false" data-i18n="wakelock" data-i18n-title="wakelockTitle">Keep screen on</button>
+      <div id="timer">
+        <button id="btn-timer" aria-expanded="false" aria-controls="timer-panel" data-i18n-title="timerTitle">
+          <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+          <span id="btn-timer-label" data-i18n="timer">Sleep timer</span>
+        </button>
+        <div id="timer-panel" role="dialog" data-i18n-aria="timer" aria-label="Sleep timer" hidden>
+          <p class="timer-hint" data-i18n="timerHint">Fades out slowly, then mutes</p>
+          <div class="timer-readout"><span id="timer-value">5</span><small id="timer-unit" data-i18n="min">min</small></div>
+          <input id="timer-minutes" type="range" min="1" max="15" value="5" data-i18n-aria="minutes" aria-label="Minutes">
+          <div class="timer-presets">
+            <button type="button" data-minutes="5">5</button>
+            <button type="button" data-minutes="10">10</button>
+            <button type="button" data-minutes="15">15</button>
+          </div>
+          <button id="btn-timer-start" type="button">Start</button>
+        </div>
+      </div>
+      <button id="btn-lang" data-i18n-title="langTitle" title="Mudar para Português" aria-label="Mudar para Português">PT</button>
       <button id="btn-mute" class="flex-item fa fa-volume-up active" title="Mute/Unmute" aria-label="Mute"></button>
     </div>
     <div class="logo"><img src="assets/mark.png" alt=""><span>Gelug</span></div>
@@ -127,7 +144,7 @@
     <br>
     <small class="text-1 footer">
       <br>
-      developed by Ruben Araujo
+      <span data-i18n="credit">developed by Ruben Araujo</span>
       <br>
       <br>
     </small>

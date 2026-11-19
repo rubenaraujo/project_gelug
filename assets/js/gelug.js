@@ -1,5 +1,41 @@
 const FADE = 0.05
-const POMODORO = { focus: 25 * 60, break: 5 * 60 } // seconds
+const MAX_TIMER_MINUTES = 15
+
+const STRINGS = {
+  en: {
+    install: "Install", installTitle: "Install app",
+    wakelock: "Keep screen on", wakelockTitle: "Keep the screen on while sounds are playing",
+    timer: "Sleep timer", timerTitle: "Fade the sounds out to mute", timerHint: "Fades out slowly, then mutes",
+    min: "min", minutes: "Minutes", start: "Start", cancel: "Cancel",
+    mute: "Mute", unmute: "Unmute", muteTitle: "Mute/Unmute",
+    langTitle: "Mudar para Português", lang: "PT", volume: name => `${name} volume`,
+    credit: "developed by Ruben Araujo",
+    description: "Mix ambient sounds such as rain, thunderstorm, ocean waves and white noise to focus, relax and sleep.",
+  },
+  pt: {
+    install: "Instalar", installTitle: "Instalar app",
+    wakelock: "Manter ecrã ligado", wakelockTitle: "Manter o ecrã ligado enquanto os sons tocam",
+    timer: "Temporizador", timerTitle: "Reduzir o volume aos poucos até ao mute", timerHint: "Baixa o volume lentamente e depois silencia",
+    min: "min", minutes: "Minutos", start: "Iniciar", cancel: "Cancelar",
+    mute: "Silenciar", unmute: "Ativar som", muteTitle: "Silenciar/Ativar som",
+    langTitle: "Switch to English", lang: "EN", volume: name => `Volume de ${name}`,
+    credit: "desenvolvido por Ruben Araujo",
+    description: "Mistura sons ambiente como chuva, trovoada, ondas do mar e ruído branco para te concentrares, relaxares e dormires.",
+  },
+}
+
+const SOUND_NAMES_PT = {
+  rain: "Chuva", thunderstorm: "Trovoada", wind: "Vento", forest: "Floresta", leaves: "Folhas",
+  waterstream: "Riacho", seaside: "Praia", water: "Água", fire: "Lareira", summernight: "Noite de verão",
+  coffee: "Café", train: "Comboio", fan: "Ventoinha", washingmachine: "Máquina de lavar", garden: "Jardim",
+  underwater: "Debaixo de água", spaceship: "Nave espacial", waterfall: "Cascata", car: "Carro",
+  airplane: "Avião", whitenoise: "Ruído branco", pinknoise: "Ruído rosa", brownnoise: "Ruído castanho",
+}
+
+const savedLanguage = (() => { try { return localStorage.getItem("gelug-language") } catch (error) { return null } })()
+let language = savedLanguage in STRINGS ? savedLanguage : (navigator.language || "en").toLowerCase().startsWith("pt") ? "pt" : "en"
+const t = key => STRINGS[language][key]
+
 
 // Safari has no Ogg Vorbis support, so it gets the AAC copies of the sounds
 const SOUND_EXTENSION = document.createElement("audio").canPlayType('audio/ogg; codecs="vorbis"') ? "ogg" : "m4a"
@@ -12,6 +48,7 @@ let context
 let master
 let muted = false
 let paused = false
+let fadeLevel = 1 // 1 = full volume; lowered by the sleep timer
 const rawData = new Map() // key -> Promise<ArrayBuffer>
 const buffers = new Map() // key -> Promise<AudioBuffer>
 const voices = new Map() // key -> voice for sounds that are on (null while loading)
@@ -20,7 +57,7 @@ function getContext() {
   if (!context) {
     context = new (window.AudioContext || window.webkitAudioContext)()
     master = context.createGain()
-    master.gain.value = muted ? 0 : 1
+    master.gain.value = muted ? 0 : fadeLevel
     master.connect(context.destination)
   }
   if (context.state === "suspended" && !paused) context.resume()
@@ -54,7 +91,7 @@ function loadBuffer(key) {
 function setVoiceVolume(voice, slider) {
   const volume = slider.value / slider.max
   if (voice.audio)
-    voice.audio.volume = volume
+    voice.audio.volume = volume * fadeLevel
   else
     voice.gain.gain.setTargetAtTime(volume, context.currentTime, FADE)
 }
@@ -74,7 +111,7 @@ function startFallbackVoice(key, slider) {
   const audio = new Audio(soundUrl(key))
   audio.loop = true
   audio.muted = muted
-  const voice = { audio }
+  const voice = { audio, slider }
   voices.set(key, voice)
   setVoiceVolume(voice, slider)
   audio.play().catch(error => console.error(`Could not play "${key}"`, error))
@@ -152,10 +189,10 @@ function setMuted(value) {
   buttonMute.classList.toggle("fa-volume-up", !muted)
   buttonMute.classList.toggle("fa-volume-off", muted)
   buttonMute.classList.toggle("active", !muted)
-  buttonMute.setAttribute("aria-label", muted ? "Unmute" : "Mute")
+  buttonMute.setAttribute("aria-label", muted ? t("unmute") : t("mute"))
 
   if (master)
-    master.gain.setTargetAtTime(muted ? 0 : 1, context.currentTime, FADE)
+    master.gain.setTargetAtTime(muted ? 0 : fadeLevel, context.currentTime, FADE)
   voices.forEach(voice => {
     if (voice?.audio) voice.audio.muted = muted
   })
@@ -259,71 +296,145 @@ function setMediaSession() {
   navigator.mediaSession.setActionHandler("pause", () => setPlaying(false))
 }
 
-const pomodoro = { phase: null, endsAt: 0, interval: null }
+const sleepTimer = { endsAt: 0, duration: 0, interval: null }
 
 function formatTime(seconds) {
   const minutes = String(Math.floor(seconds / 60)).padStart(2, "0")
   return `${minutes}:${String(seconds % 60).padStart(2, "0")}`
 }
 
-function pomodoroLabel() {
-  const remaining = Math.max(0, Math.ceil((pomodoro.endsAt - Date.now()) / 1000))
-  return `${pomodoro.phase === "focus" ? "Focus" : "Break"} ${formatTime(remaining)}`
+function timerLabel() {
+  return formatTime(Math.max(0, Math.ceil((sleepTimer.endsAt - Date.now()) / 1000)))
 }
 
 function renderTitle() {
   const sounds = voices.size ? ` · ${voices.size}` : ""
-  document.title = pomodoro.phase ? `${pomodoroLabel()} · Gelug${sounds}` : `Gelug${sounds}`
+  document.title = sleepTimer.interval ? `${timerLabel()} · Gelug${sounds}` : `Gelug${sounds}`
 }
 
-function playChime() {
-  const ctx = getContext()
-  ;[660, 880].forEach((frequency, index) => {
-    const start = ctx.currentTime + index * 0.35
-    const oscillator = ctx.createOscillator()
-    const gain = ctx.createGain()
-    oscillator.frequency.value = frequency
-    gain.gain.setValueAtTime(0, start)
-    gain.gain.linearRampToValueAtTime(0.15, start + 0.05)
-    gain.gain.exponentialRampToValueAtTime(0.001, start + 1.2)
-    oscillator.connect(gain)
-    gain.connect(master)
-    oscillator.start(start)
-    oscillator.stop(start + 1.3)
+function setFadeLevel(level) {
+  fadeLevel = level
+  if (master && !muted) master.gain.setTargetAtTime(level, context.currentTime, 0.5)
+  voices.forEach(voice => {
+    if (voice?.audio) setVoiceVolume(voice, voice.slider)
   })
 }
 
-function startPomodoroPhase(phase) {
-  pomodoro.phase = phase
-  pomodoro.endsAt = Date.now() + POMODORO[phase] * 1000
+const soundNames = {} // key -> { en, pt }
+
+function applyLanguage() {
+  document.documentElement.lang = language
+  document.querySelectorAll("[data-i18n]").forEach(element => { element.textContent = t(element.dataset.i18n) })
+  document.querySelectorAll("[data-i18n-title]").forEach(element => { element.title = t(element.dataset.i18nTitle) })
+  document.querySelectorAll("[data-i18n-aria]").forEach(element => { element.setAttribute("aria-label", t(element.dataset.i18nAria)) })
+  document.querySelector('meta[name="description"]').content = t("description")
+
+  const buttonLang = document.querySelector("#btn-lang")
+  buttonLang.textContent = t("lang")
+  buttonLang.setAttribute("aria-label", t("langTitle"))
+  document.querySelector("#btn-mute").title = t("muteTitle")
+
+  document.querySelectorAll("#sound-types > div").forEach(tile => {
+    const name = soundNames[tile.dataset.key]?.[language]
+    if (!name) return
+    const image = tile.querySelector("img")
+    image.alt = image.title = name
+    image.setAttribute("aria-label", name)
+    tile.querySelector(`input[type="range"]`).setAttribute("aria-label", t("volume")(name))
+  })
+
+  setMuted(muted)
+  if (sleepTimer.interval) document.querySelector("#btn-timer-label").textContent = timerLabel()
+  renderTimerPanel()
 }
 
-function tickPomodoro() {
-  if (Date.now() >= pomodoro.endsAt) {
-    startPomodoroPhase(pomodoro.phase === "focus" ? "break" : "focus")
-    playChime()
-  }
-  document.querySelector("#btn-pomodoro").textContent = pomodoroLabel()
+function renderTimerPanel() {
+  const running = Boolean(sleepTimer.interval)
+  const input = document.querySelector("#timer-minutes")
+  document.querySelector("#timer-value").textContent = running ? timerLabel() : input.value
+  document.querySelector("#timer-unit").hidden = running
+  document.querySelector("#btn-timer-start").textContent = running ? t("cancel") : t("start")
+  document.querySelector("#timer-panel").classList.toggle("running", running)
+  input.disabled = running
+  input.style.setProperty("--fill", `${((input.value - input.min) / (input.max - input.min)) * 100}%`)
+  document.querySelectorAll(".timer-presets button").forEach(button => {
+    button.disabled = running
+    button.classList.toggle("selected", button.dataset.minutes === input.value)
+  })
+}
+
+function setTimerPanelOpen(open) {
+  document.querySelector("#timer-panel").hidden = !open
+  document.querySelector("#btn-timer").setAttribute("aria-expanded", String(open))
+}
+
+function stopSleepTimer() {
+  clearInterval(sleepTimer.interval)
+  sleepTimer.interval = null
+  const button = document.querySelector("#btn-timer")
+  document.querySelector("#btn-timer-label").textContent = t("timer")
+  button.classList.remove("active")
+  button.style.removeProperty("--progress")
+  renderTimerPanel()
   renderTitle()
 }
 
-function togglePomodoro() {
-  const button = document.querySelector("#btn-pomodoro")
-
-  if (pomodoro.phase) {
-    clearInterval(pomodoro.interval)
-    pomodoro.phase = null
-    button.textContent = "Pomodoro"
-    button.classList.remove("active")
-    renderTitle()
+function tickSleepTimer() {
+  const remaining = sleepTimer.endsAt - Date.now()
+  if (remaining <= 0) {
+    stopSleepTimer()
+    setMuted(true)
+    setFadeLevel(1) // restored so unmuting brings the sounds back at their normal volume
     return
   }
+  setFadeLevel(remaining / sleepTimer.duration)
+  document.querySelector("#btn-timer-label").textContent = timerLabel()
+  document.querySelector("#btn-timer").style.setProperty("--progress", `${(remaining / sleepTimer.duration) * 100}%`)
+  renderTimerPanel()
+  renderTitle()
+}
 
-  getContext() // created on a user gesture so the end-of-phase chime is allowed to play
-  startPomodoroPhase("focus")
-  button.classList.add("active")
-  tickPomodoro()
-  pomodoro.interval = setInterval(tickPomodoro, 1000)
+function startSleepTimer() {
+  const minutes = Math.min(MAX_TIMER_MINUTES, Math.max(1, Math.round(Number(document.querySelector("#timer-minutes").value)) || 1))
+  getContext() // created on a user gesture so the fade can run
+  sleepTimer.duration = minutes * 60 * 1000
+  sleepTimer.endsAt = Date.now() + sleepTimer.duration
+  document.querySelector("#btn-timer").classList.add("active")
+  sleepTimer.interval = setInterval(tickSleepTimer, 1000)
+  tickSleepTimer()
+  setTimerPanelOpen(false)
+}
+
+function setSleepTimer() {
+  const input = document.querySelector("#timer-minutes")
+  const panel = document.querySelector("#timer-panel")
+
+  document.querySelector("#btn-timer").addEventListener("click", () => setTimerPanelOpen(panel.hidden))
+  input.addEventListener("input", renderTimerPanel)
+  document.querySelectorAll(".timer-presets button").forEach(button => {
+    button.addEventListener("click", () => {
+      input.value = button.dataset.minutes
+      renderTimerPanel()
+    })
+  })
+  document.querySelector("#btn-timer-start").addEventListener("click", () => {
+    if (sleepTimer.interval) {
+      stopSleepTimer()
+      setFadeLevel(1)
+    } else {
+      startSleepTimer()
+    }
+  })
+  document.addEventListener("click", event => {
+    if (!panel.hidden && !event.target.closest("#timer")) setTimerPanelOpen(false)
+  })
+  document.addEventListener("keydown", event => {
+    if (event.key === "Escape" && !panel.hidden) {
+      setTimerPanelOpen(false)
+      document.querySelector("#btn-timer").focus()
+    }
+  })
+  renderTimerPanel()
 }
 
 function setInstallButton() {
@@ -406,9 +517,8 @@ function setButtonEvents() {
 
     image.setAttribute("role", "button")
     image.setAttribute("aria-pressed", "false")
-    image.setAttribute("aria-label", image.alt)
+    soundNames[key] = { en: image.alt, pt: SOUND_NAMES_PT[key] || image.alt }
     image.tabIndex = index === 0 ? 0 : -1
-    slider.setAttribute("aria-label", `${image.alt} volume`)
 
     // Roving tabindex: a single tab stop for the grid, arrows move inside it
     image.addEventListener("focus", () => {
@@ -434,8 +544,15 @@ function setButtonEvents() {
   })
 
   document.querySelector("#btn-mute").addEventListener("click", () => setMuted(!muted))
-  document.querySelector("#btn-pomodoro").addEventListener("click", togglePomodoro)
+  setSleepTimer()
   setKeyboardEvents(images)
+
+  document.querySelector("#btn-lang").addEventListener("click", () => {
+    language = language === "en" ? "pt" : "en"
+    try { localStorage.setItem("gelug-language", language) } catch (error) { /* private mode */ }
+    applyLanguage()
+  })
+  applyLanguage()
 }
 
 function registerServiceWorker() {

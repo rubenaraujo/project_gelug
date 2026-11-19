@@ -228,7 +228,7 @@ input[type="range"]::-moz-range-thumb {
   display: none;
 }
 
-#btn-pomodoro, #btn-install, #btn-wakelock {
+#btn-lang, #btn-timer, #btn-install, #btn-wakelock {
   font-family: inherit;
   font-size: 12px;
   padding: 0.5em 1.2em;
@@ -237,16 +237,157 @@ input[type="range"]::-moz-range-thumb {
   transition: opacity 0.2s;
 }
 
-#btn-pomodoro:hover, #btn-install:hover, #btn-wakelock:hover {
+#btn-lang:hover, #btn-timer:hover, #btn-install:hover, #btn-wakelock:hover {
   opacity: 1;
 }
 
-#btn-pomodoro:focus-visible, #btn-install:focus-visible, #btn-wakelock:focus-visible {
+#btn-lang:focus-visible, #btn-timer:focus-visible, #btn-install:focus-visible, #btn-wakelock:focus-visible {
   outline: 2px solid rgba(255, 255, 255, 0.6);
 }
 
-#btn-pomodoro.active, #btn-wakelock.active {
+#btn-timer.active, #btn-wakelock.active {
   font-weight: normal;
+}
+
+#btn-timer {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6em;
+  overflow: hidden;
+  font-variant-numeric: tabular-nums;
+}
+
+#btn-timer::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 2px;
+  width: var(--progress, 0%);
+  background: rgba(255, 255, 255, 0.7);
+  transition: width 1s linear;
+}
+
+#timer {
+  position: relative;
+}
+
+#timer-panel {
+  position: absolute;
+  top: calc(100% + 0.6em);
+  right: 0;
+  z-index: 10;
+  width: 240px;
+  padding: 1.2em;
+  text-align: center;
+  color: white;
+  background: rgba(20, 22, 30, 0.82);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 14px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+}
+
+#timer-panel[hidden] {
+  display: none;
+}
+
+.timer-hint {
+  margin: 0;
+  font-size: 11px;
+  opacity: 0.6;
+}
+
+.timer-readout {
+  margin: 0.4em 0 0.6em;
+  font-family: "Barlow Condensed", Raleway, sans-serif;
+  font-size: 56px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.timer-readout small {
+  margin-left: 0.25em;
+  font-family: Raleway, sans-serif;
+  font-size: 13px;
+  opacity: 0.6;
+}
+
+.timer-readout small[hidden] {
+  display: none;
+}
+
+#timer-minutes {
+  display: block;
+  width: 100%;
+  margin: 0 0 1.2em;
+  visibility: visible;
+  opacity: 1;
+}
+
+#timer-minutes:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.timer-presets {
+  display: flex;
+  gap: 0.5em;
+  margin-bottom: 1em;
+}
+
+.timer-presets button, #btn-timer-start {
+  flex: 1;
+  margin: 0;
+  padding: 0.6em 0;
+  font-family: inherit;
+  font-size: 12px;
+  color: white;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid transparent;
+  border-radius: 8px;
+  opacity: 0.85;
+  cursor: pointer;
+  transition: opacity 0.2s, background 0.2s;
+}
+
+.timer-presets button:hover:not(:disabled), #btn-timer-start:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.timer-presets button.selected {
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.timer-presets button:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+#btn-timer-start {
+  opacity: 1;
+  width: 100%;
+  padding: 0.8em 0;
+  font-size: 13px;
+  color: black;
+  background: white;
+}
+
+#btn-timer-start:hover {
+  background: white;
+}
+
+#timer-panel.running #btn-timer-start {
+  color: white;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+#timer-panel button:focus-visible, #timer-minutes:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.6);
+  outline-offset: 2px;
 }
 
 #btn-mute {
